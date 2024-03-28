@@ -1,0 +1,12 @@
+# Settings
+.vscode 
+
+# Folders
+old
+notebooks
+
+# Files
+*.ipynb
+
+# Credentials & tokens
+credentials.json
