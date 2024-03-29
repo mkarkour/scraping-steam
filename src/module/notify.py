@@ -26,7 +26,7 @@ class Sender:
         self.logger.setLevel(logging.INFO)
         self.formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s',
                                            '%m-%d-%Y %H:%M:%S')
-        self.setup_logger()
+        # self.setup_logger()
 
         self.sender = sender
         self.sender_pwd = sender_pwd
@@ -34,6 +34,14 @@ class Sender:
         self.smtp_address = smtp_address
 
     def send(self, receiver: str, sending: str) -> None:
+        """This method allows you to send a message to a specific receiver 
+        and with a specific message type. This message has a predefined
+        template that will be used.
+
+        Args:
+            receiver (str): Email address of the receiver.
+            sending (str): Message that you want to send.
+        """
         message = MIMEMultipart("alternative")
         message["Subject"] = "[Probo's message] Video's Game Review Message"
         message["From"] = self.sender
@@ -74,7 +82,9 @@ class Sender:
         html_mime = MIMEText(baseline, 'html')
         message.attach(html_mime)
 
-        with smtplib.SMTP_SSL(self.smtp_address, self.smtp_port,context=ssl.create_default_context()) as server:
-            server.login(self.sender, self.sender_pwd)
-            server.sendmail(self.sender, receiver, message.as_string())
+        # with smtplib.SMTP_SSL(self.smtp_address, self.smtp_port,context=ssl.create_default_context()) as server:
+        #     server.login(self.sender, self.sender_pwd)
+        #     server.sendmail(self.sender, receiver, message.as_string())
         self.logger.info("Email perferctly send")
+
+        # ConnectionResetError

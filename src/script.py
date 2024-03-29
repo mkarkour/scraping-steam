@@ -1,9 +1,13 @@
-from typing import List
+from module.notify import Sender
+import json
 
 
-def main() -> List[int]:
-    return list(1, 2, 3)
+with open("credentials.json") as f:
+    creds = json.load(f)
 
+sender = Sender(creds.get('email_address'), creds.get('password'))
+sender.send("karmehdi@hotmail.com","test")
 
 if __name__ == "__main__":
-    main()
+    # main()
+    pass
