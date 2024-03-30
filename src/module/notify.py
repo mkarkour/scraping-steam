@@ -82,9 +82,9 @@ class Sender:
         html_mime = MIMEText(baseline, 'html')
         message.attach(html_mime)
 
-        # with smtplib.SMTP_SSL(self.smtp_address, self.smtp_port,context=ssl.create_default_context()) as server:
-        #     server.login(self.sender, self.sender_pwd)
-        #     server.sendmail(self.sender, receiver, message.as_string())
+        with smtplib.SMTP_SSL(self.smtp_address, self.smtp_port, context=ssl.create_default_context()) as server:
+            server.login(self.sender, self.sender_pwd)
+            server.sendmail(self.sender, receiver, message.as_string())
         self.logger.info("Email perferctly send")
 
         # ConnectionResetError

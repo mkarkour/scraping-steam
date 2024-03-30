@@ -4,9 +4,9 @@ import json
 
 with open("credentials.json") as f:
     creds = json.load(f)
-
 sender = Sender(creds.get('email_address'), creds.get('password'))
-sender.send("karmehdi@hotmail.com","test")
+sender.send("karmehdi@hotmail.com", "test")
+print("done")
 
 if __name__ == "__main__":
     # main()
