@@ -1,26 +1,115 @@
+import logging
+from typing import Dict, List
+
+import httplib2
+import requests
+from bs4 import BeautifulSoup, SoupStrainer, Tag
+
+import module.setup_logging
 
 
 class Extract:
-    def __init__(self, page_start: int, page_end: int) -> None:
-        """Initializing the extraction class involves providing the URL from which data
+    """
+    This class is used to extract information from the Steam store website.
+    """
+    def __init__(self) -> None:
+        """
+        Initializing the extraction class involves providing the URL from which data
         is to be extracted, as well as specifying the range of pages from which
         extraction is to be performed.
-
-        Args:
-            page_start (int): Start of page number to be extracted.
-            page_end (int): End of page number to be extracted.
         """
         self.url = "https://store.steampowered.com/search/?"
-        self.page_start = page_start
-        self.page_end = page_end
+        self.logger = logging.getLogger(__name__)
 
-    def get_links(self) -> list[str]:
-        """This method returns a list of all the links
-        on the different page to be extracted.
+    def get_links(self, page_start: int, page_end: int) -> list[str]:
+        """
+        This method returns a list of all the links on the different page to be extracted.
 
         Returns:
             list[str]: A list of all the links to be extracted.
         """
-        return [
-            self.url + str(f"page={i}")
-            for i in range(self.page_start, self.page_end)]
+        return [self.url + str(f"page={i}") for i in range(page_start, page_end)]
+
+    def retrieval_infos(self, list_of_element: List[str]) -> Dict[str, str]:
+        """
+        This method facilitates the retrieval of necessary information in a dictionary
+        format, ensuring adherence to established standards.
+
+        Args:
+            list_of_element (List[str]): A list of all the different information for
+                                          each video game.
+
+        Returns:
+            Dict[str, str]: A list containing all the information needed for each
+                            video game. This list contains a dictionary containing the
+                            name of the video game, the price of the game, the creation
+                            date of the game, and the corresponding link.
+        """
+        return {
+            'name': list_of_element[-5:-(len(list_of_element) + 1):-1],
+            'price': list_of_element[-1],
+            'creation_date': list_of_element[-2:-5:-1],
+        }
+
+    def insert_corresponding_links(self,
+                                   links_page: List[str],
+                                   segmented_infos: List[Dict[str, str]]
+                                   ) -> List[Dict[str, str]]:
+        """
+        This method facilitates the retrieval of the appropriate link corresponding to the
+        game's accurate name, enabling the addition of the link to the information
+        dictionary.
+
+        Args:
+            links_page (List[str]): A compilation of links for all video games.
+                                    This list must accurately correspond to the respective
+                                    pages for extraction.
+            segmented_infos (List[Dict[str, str]]): A list containing the initial
+                                                    segmentation of various information
+                                                    for each video game.
+
+        Returns:
+            List[Dict[str, str]]: A list containing all the information needed for each
+                                   video game. This list contains a dictionary containing
+                                   the name of the video game, the price of the game,
+                                   the creation date of the game, and the corresponding
+                                   link.
+        """
+        updated_list = list()
+        for link in links_page:
+            for value in segmented_infos:
+                if len(value['name']) > 1:
+                    if value['name'][::-1][0] in link and value['name'][::-1][1] in link:
+                        value['link'] = link
+                        updated_list.append(value)
+                else:
+                    if value['name'][::-1][0] in link:
+                        value['link'] = link
+                        updated_list.append(value)
+        return updated_list
+
+    def parse_content(self, link: str) -> List[Dict[str, str]]:
+        """
+        This method is used to parse the content of a given link.
+
+        Args:
+            link (str): The link to be parsed.
+
+        Returns:
+            List[Dict[str, str]]: A list containing all the information needed for each
+                                  video game. This list contains a dictionary containing
+                                  the name of the video game, the price of the game,
+                                  the creation date of the game, and the corresponding
+                                  link.
+        """
+        page = requests.get(link)
+        parser = BeautifulSoup(page.content, 'html.parser')
+        infos = list(parser.findAll(class_="responsive_search_name_combined"))
+        initial_segmented_infos = [
+            self.retrieval_infos(i.get_text().split()) for i in infos]
+
+        http = httplib2.Http()
+        status, response = http.request(link)
+        b = BeautifulSoup(response, parse_only=SoupStrainer('a'), features="lxml")
+        links_page = [i.get('href') for i in b.find_all('a') if "/app/" in i.get('href')]
+        return self.insert_corresponding_links(links_page, initial_segmented_infos)
