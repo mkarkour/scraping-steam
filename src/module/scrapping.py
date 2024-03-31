@@ -1,11 +1,11 @@
 import logging
-from typing import Dict, List
+import sys
+from typing import Any, Dict, List
 
 import httplib2
 import requests
+import setup_logging
 from bs4 import BeautifulSoup, SoupStrainer, Tag
-
-import module.setup_logging
 
 
 class Extract:
@@ -83,9 +83,10 @@ class Extract:
                         value['link'] = link
                         updated_list.append(value)
                 else:
-                    if value['name'][::-1][0] in link:
-                        value['link'] = link
-                        updated_list.append(value)
+                    if len(value["name"]) != 0:
+                        if value['name'][::-1][0] in link:
+                            value['link'] = link
+                            updated_list.append(value)
         return updated_list
 
     def parse_content(self, link: str) -> List[Dict[str, str]]:
@@ -113,3 +114,36 @@ class Extract:
         b = BeautifulSoup(response, parse_only=SoupStrainer('a'), features="lxml")
         links_page = [i.get('href') for i in b.find_all('a') if "/app/" in i.get('href')]
         return self.insert_corresponding_links(links_page, initial_segmented_infos)
+
+    def mapping_values(raw_infos_extracted: List[Dict[str, str]]) -> List[Any]:
+        """_summary_
+
+        Args:
+            raw_infos_extracted (List[Dict[str, str]]): _description_
+
+        Returns:
+            List[Any]: _description_
+        """
+        for raw in raw_infos_extracted:
+            finale_title = " ".join(raw['name'][::-1])
+            date = " ".join(raw['creation_date'][::-1])
+            link = raw['link']
+            print(link, date, finale_title)
+            if (raw['price'] == 'Free') or (raw['price'] == 'Free!') or (raw['price'] == 'Play'):
+                price = 0.00
+            else:
+                price = raw['price'].split("€")
+                print(price)
+                if len(price) > 2:
+                    discounted_price = float(price[1].strip().replace(',', '.'))
+                    originale_price = float(
+                        price[0].split("%")[-1].strip().replace(',', '.'))
+                else:
+                    originale_price = float(((price[0]).strip()).replace(',', '.'))
+                    discounted_price = None
+        return [
+            finale_title,
+            date,
+            originale_price,
+            discounted_price,
+            link]
