@@ -1,8 +1,8 @@
 import json
 import logging
 
-import module.setup_logging
 from module.notify import Sender
+from module.processing import Transform
 from module.scrapping import Extract
 
 # logger = logging.getLogger(__name__)

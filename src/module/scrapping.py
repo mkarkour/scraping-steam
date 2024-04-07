@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import httplib2
 import requests
-import setup_logging
+# import setup_logging
 from bs4 import BeautifulSoup, SoupStrainer, Tag
 
 
@@ -19,6 +19,10 @@ class Extract:
         extraction is to be performed.
         """
         self.url = "https://store.steampowered.com/search/?"
+        self.logger = logging.basicConfig(
+            format='%(asctime)s | %(levelname)s | %(message)s',
+            datefmt='%m-%d-%Y %H:%M:%S',
+            level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
     def get_links(self, page_start: int, page_end: int) -> list[str]:
@@ -36,19 +40,19 @@ class Extract:
         format, ensuring adherence to established standards.
 
         Args:
-            list_of_element (List[str]): A list of all the different information for
-                                          each video game.
+            list_of_element (List[str]): A list of all the different information for each
+            video game.
 
         Returns:
-            Dict[str, str]: A list containing all the information needed for each
-                            video game. This list contains a dictionary containing the
-                            name of the video game, the price of the game, the creation
-                            date of the game, and the corresponding link.
+            Dict[str, str]: A list containing all the information needed for each video
+            game. This list contains a dictionary containing the name of the video game,
+            the price of the game, the creation date of the game, and the corresponding
+            link.
         """
         return {
             'name': list_of_element[-5:-(len(list_of_element) + 1):-1],
             'price': list_of_element[-1],
-            'creation_date': list_of_element[-2:-5:-1],
+            'creation_date': list_of_element[-2:-5:-1]
         }
 
     def insert_corresponding_links(self,
@@ -62,18 +66,16 @@ class Extract:
 
         Args:
             links_page (List[str]): A compilation of links for all video games.
-                                    This list must accurately correspond to the respective
-                                    pages for extraction.
+            This list must accurately correspond to the respective pages for extraction.
+
             segmented_infos (List[Dict[str, str]]): A list containing the initial
-                                                    segmentation of various information
-                                                    for each video game.
+            segmentation of various information for each video game.
 
         Returns:
             List[Dict[str, str]]: A list containing all the information needed for each
-                                   video game. This list contains a dictionary containing
-                                   the name of the video game, the price of the game,
-                                   the creation date of the game, and the corresponding
-                                   link.
+            video game. This list contains a dictionary containing the name of the video
+            game, the price of the game, the creation date of the game, and the
+            corresponding link.
         """
         updated_list = list()
         for link in links_page:
@@ -98,16 +100,22 @@ class Extract:
 
         Returns:
             List[Dict[str, str]]: A list containing all the information needed for each
-                                  video game. This list contains a dictionary containing
-                                  the name of the video game, the price of the game,
-                                  the creation date of the game, and the corresponding
-                                  link.
+            video game. This list contains a dictionary containing the name of the video
+            game, the price of the game, the creation date of the game, and the
+            corresponding link.
         """
         page = requests.get(link)
         parser = BeautifulSoup(page.content, 'html.parser')
         infos = list(parser.findAll(class_="responsive_search_name_combined"))
         initial_segmented_infos = [
             self.retrieval_infos(i.get_text().split()) for i in infos]
+
+        to_review = [
+            one_info for one_info in initial_segmented_infos
+            if '€' not in one_info.get('price') and 'Free' not in one_info.get('price')]
+
+        self.logger.warning(f"There are {len(to_review)} data that should be reviewed.")
+        self.logger.info(f"{to_review} details that should be reviewed.")
 
         http = httplib2.Http()
         status, response = http.request(link)
@@ -116,20 +124,26 @@ class Extract:
         return self.insert_corresponding_links(links_page, initial_segmented_infos)
 
     def mapping_values(raw_infos_extracted: List[Dict[str, str]]) -> List[Any]:
-        """_summary_
+        """
+        This method facilitates the mapping of the information obtained from the
+        scraping process to the format expected by the machine learning algorithm.
 
         Args:
-            raw_infos_extracted (List[Dict[str, str]]): _description_
+            raw_infos_extracted (List[Dict[str, str]]):  A list of dictionaries containing
+            the extracted information from each game.
 
         Returns:
-            List[Any]: _description_
+            List[Any]: A list of values containing the game name, release date, original
+            price, discounted price, and link.
         """
         for raw in raw_infos_extracted:
             finale_title = " ".join(raw['name'][::-1])
             date = " ".join(raw['creation_date'][::-1])
             link = raw['link']
             print(link, date, finale_title)
-            if (raw['price'] == 'Free') or (raw['price'] == 'Free!') or (raw['price'] == 'Play'):
+            if (raw['price'] == 'Free') or (
+                    raw['price'] == 'Free!') or (
+                        raw['price'] == 'Play'):
                 price = 0.00
             else:
                 price = raw['price'].split("€")
