@@ -14,10 +14,10 @@ class Transform:
         """
         Initialize the Transform class by setting the logging level.
         """
-        # self.logger = logging.getLogger(__name__)
-        self.logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s',
-                                 datefmt='%m-%d-%Y %H:%M:%S',
-                                 level=logging.INFO)
+        self.logger = logging.basicConfig(
+            format='%(asctime)s | %(levelname)s | %(message)s',
+            datefmt='%m-%d-%Y %H:%M:%S',
+            level=logging.INFO)
 
     def transform_to_df(self, list_of_scrapes_data: List[Dict[str, str]]) -> DataFrame:
         """

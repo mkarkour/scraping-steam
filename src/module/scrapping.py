@@ -1,16 +1,15 @@
 import logging
-import sys
+from datetime import datetime
 from typing import Any, Dict, List
 
 import httplib2
 import requests
-# import setup_logging
 from bs4 import BeautifulSoup, SoupStrainer, Tag
 
 
 class Extract:
     """
-    This class is used to extract information from the Steam store website.
+    The class is used to extract information from the Steam store website.
     """
     def __init__(self) -> None:
         """
@@ -27,7 +26,7 @@ class Extract:
 
     def get_links(self, page_start: int, page_end: int) -> list[str]:
         """
-        This method returns a list of all the links on the different page to be extracted.
+        The method returns a list of all the links on the different page to be extracted.
 
         Returns:
             list[str]: A list of all the links to be extracted.
@@ -36,7 +35,7 @@ class Extract:
 
     def retrieval_infos(self, list_of_element: List[str]) -> Dict[str, str]:
         """
-        This method facilitates the retrieval of necessary information in a dictionary
+        The method facilitates the retrieval of necessary information in a dictionary
         format, ensuring adherence to established standards.
 
         Args:
@@ -52,7 +51,8 @@ class Extract:
         return {
             'name': list_of_element[-5:-(len(list_of_element) + 1):-1],
             'price': list_of_element[-1],
-            'creation_date': list_of_element[-2:-5:-1]
+            'creation_date': list_of_element[-2:-5:-1],
+            'extraction_date': datetime.now().date()
         }
 
     def insert_corresponding_links(self,
@@ -60,7 +60,7 @@ class Extract:
                                    segmented_infos: List[Dict[str, str]]
                                    ) -> List[Dict[str, str]]:
         """
-        This method facilitates the retrieval of the appropriate link corresponding to the
+        The method facilitates the retrieval of the appropriate link corresponding to the
         game's accurate name, enabling the addition of the link to the information
         dictionary.
 
@@ -93,7 +93,7 @@ class Extract:
 
     def parse_content(self, link: str) -> List[Dict[str, str]]:
         """
-        This method is used to parse the content of a given link.
+        The method is used to parse the content of a given link.
 
         Args:
             link (str): The link to be parsed.
@@ -115,49 +115,11 @@ class Extract:
             if '€' not in one_info.get('price') and 'Free' not in one_info.get('price')]
 
         self.logger.warning(f"There are {len(to_review)} data that should be reviewed.")
-        self.logger.info(f"{to_review} details that should be reviewed.")
+        if len(to_review) != 0:
+            self.logger.info(f"{to_review} details that should be reviewed.")
 
         http = httplib2.Http()
         status, response = http.request(link)
         b = BeautifulSoup(response, parse_only=SoupStrainer('a'), features="lxml")
         links_page = [i.get('href') for i in b.find_all('a') if "/app/" in i.get('href')]
         return self.insert_corresponding_links(links_page, initial_segmented_infos)
-
-    def mapping_values(raw_infos_extracted: List[Dict[str, str]]) -> List[Any]:
-        """
-        This method facilitates the mapping of the information obtained from the
-        scraping process to the format expected by the machine learning algorithm.
-
-        Args:
-            raw_infos_extracted (List[Dict[str, str]]):  A list of dictionaries containing
-            the extracted information from each game.
-
-        Returns:
-            List[Any]: A list of values containing the game name, release date, original
-            price, discounted price, and link.
-        """
-        for raw in raw_infos_extracted:
-            finale_title = " ".join(raw['name'][::-1])
-            date = " ".join(raw['creation_date'][::-1])
-            link = raw['link']
-            print(link, date, finale_title)
-            if (raw['price'] == 'Free') or (
-                    raw['price'] == 'Free!') or (
-                        raw['price'] == 'Play'):
-                price = 0.00
-            else:
-                price = raw['price'].split("€")
-                print(price)
-                if len(price) > 2:
-                    discounted_price = float(price[1].strip().replace(',', '.'))
-                    originale_price = float(
-                        price[0].split("%")[-1].strip().replace(',', '.'))
-                else:
-                    originale_price = float(((price[0]).strip()).replace(',', '.'))
-                    discounted_price = None
-        return [
-            finale_title,
-            date,
-            originale_price,
-            discounted_price,
-            link]
